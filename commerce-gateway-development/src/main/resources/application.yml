@@ -1,8 +1,10 @@
 spring:
+  profiles:
+    active: dev
   application:
     name: commerce-gateway-development
   datasource:
-    url: jdbc:postgresql://localhost:5432/commercegatewaydb
+    url: jdbc:postgresql://localhost:5432/${POSTGRES_DB}
     username: postgres
     password: 12345
     driver-class-name: org.postgresql.Driver
