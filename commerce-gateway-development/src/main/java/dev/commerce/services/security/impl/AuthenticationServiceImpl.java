@@ -5,10 +5,10 @@ import dev.commerce.dtos.request.ChangePasswordRequest;
 import dev.commerce.dtos.request.LoginRequest;
 import dev.commerce.dtos.request.ResetPasswordRequest;
 import dev.commerce.dtos.response.LoginResponse;
-import dev.commerce.entitys.RefreshToken;
 import dev.commerce.entitys.Users;
 import dev.commerce.exception.InvalidDataException;
 import dev.commerce.exception.UserNotFoundException;
+import dev.commerce.redis.RefreshToken;
 import dev.commerce.repositories.jpa.UserRepository;
 import dev.commerce.services.RefreshTokenService;
 import dev.commerce.services.UserService;
@@ -48,6 +48,10 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         var user = userRepository.findByUsername(request.getUsername()).orElseThrow(() -> new UserNotFoundException("User not found"));
         String accessToken = jwtService.generateAccessToken(user);
         String refreshToken = jwtService.generateRefreshToken(user);
+        tokenService.saveRefreshToken(RefreshToken.builder()
+                .token(refreshToken)
+                .usersId(user.getId())
+                .build());
         return LoginResponse.builder()
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
@@ -86,7 +90,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         if (!jwtService.isTokenValid(refresh, user, TokenType.REFRESH)) {
             throw new InvalidDataException("Invalid refresh token");
         }
-        tokenService.deleteByUserId(user);
+        tokenService.deleteByUserId(user.getId());
         return "Logout successful";
     }
 
@@ -103,9 +107,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         // Save reset token to database (not refresh token)
         tokenService.saveRefreshToken(RefreshToken.builder()
                 .token(resetToken)
-                .usersId(user)
-                .expDate(jwtService.extractExpiration(resetToken, TokenType.RESET_PASSWORD)
-                        .toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime())
+                .usersId(user.getId())
                 .build());
         
         // TODO: Send email with reset link
@@ -136,7 +138,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         userRepository.save(user);
         
         // Delete used reset token
-        tokenService.deleteByUserId(user);
+        tokenService.deleteByUserId(user.getId());
         
         log.info("Password reset successful for user: {}", username);
         return "Password has been reset successfully";

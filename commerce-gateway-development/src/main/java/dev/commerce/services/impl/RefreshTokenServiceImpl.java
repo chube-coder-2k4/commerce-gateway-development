@@ -1,8 +1,7 @@
 package dev.commerce.services.impl;
 
-import dev.commerce.entitys.RefreshToken;
-import dev.commerce.entitys.Users;
-import dev.commerce.repositories.redis.RefreshTokenRepository;
+import dev.commerce.redis.RefreshToken;
+import dev.commerce.repositories.redis.RefreshTokenRedisRepository;
 import dev.commerce.services.RefreshTokenService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -12,9 +11,9 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class RefreshTokenServiceImpl implements RefreshTokenService {
-    private final RefreshTokenRepository refreshTokenRepository;
+    private final RefreshTokenRedisRepository refreshTokenRepository;
     @Override
-    public void deleteByUserId(Users userId) {
+    public void deleteByUserId(UUID userId) {
         refreshTokenRepository.deleteByUsersId(userId);
     }
 
@@ -25,7 +24,7 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
     }
 
     @Override
-    public RefreshToken getByUserId(Users userId) {
+    public RefreshToken getByUserId(UUID userId) {
         return refreshTokenRepository.findByUsersId(userId);
     }
 }

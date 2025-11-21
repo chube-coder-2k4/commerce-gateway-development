@@ -1,12 +1,12 @@
 package dev.commerce.services;
 
-import dev.commerce.entitys.RefreshToken;
 import dev.commerce.entitys.Users;
+import dev.commerce.redis.RefreshToken;
 
 import java.util.UUID;
 
 public interface RefreshTokenService {
-    void deleteByUserId(Users userId);
+    void deleteByUserId(UUID userId);
     String saveRefreshToken(RefreshToken refreshToken);
-    RefreshToken getByUserId(Users userId);
+    RefreshToken getByUserId(UUID userId);
 }

@@ -1,32 +1,28 @@
-package dev.commerce.entitys;
+package dev.commerce.redis;
 
 import dev.commerce.dtos.common.TypeOTP;
 import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.data.redis.core.RedisHash;
 
-import java.time.LocalDateTime;
 import java.util.UUID;
 
-@Entity
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@RedisHash(value = "otp_verify", timeToLive = 300)
 public class OtpVerify {
     @Id
     private UUID id;
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id")
-    private Users usersId;
+    private Long userId;
     private String otp;
-    @Enumerated(EnumType.STRING)
     private TypeOTP type;
-    private LocalDateTime expiredAt;
-    private boolean isUsed = false;
+    private boolean used = false;
 
     public void ensureId() {
-        if(this.id == null) {
+        if (this.id == null) {
             this.id = UUID.randomUUID();
         }
     }
