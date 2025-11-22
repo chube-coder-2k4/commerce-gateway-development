@@ -1,0 +1,201 @@
+# ========================================
+# DOCKER COMPOSE CHO E-COMMERCE PROJECT
+# ========================================
+# File này định nghĩa tất cả các services cần thiết:
+# 1. PostgreSQL - Database chính
+# 2. Redis - Cache & Session storage
+# 3. RabbitMQ - Message broker
+# 4. Spring Boot App - Backend application
+
+version: '3.8'
+
+# NETWORKS: Tạo mạng riêng để các container giao tiếp với nhau
+networks:
+  commerce-network:
+    driver: bridge
+
+# VOLUMES: Lưu trữ data persistent (không mất khi restart container)
+volumes:
+  postgres-data:      # Lưu data PostgreSQL
+  redis-data:         # Lưu data Redis
+  rabbitmq-data:      # Lưu data RabbitMQ
+
+services:
+  # ==========================================
+  # SERVICE 1: POSTGRESQL DATABASE
+  # ==========================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: commerce-postgres
+    restart: unless-stopped
+
+    # Biến môi trường để config PostgreSQL
+    environment:
+      POSTGRES_DB: commercegatewaydb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 12345
+      PGDATA: /var/lib/postgresql/data/pgdata
+
+    # Map port: host:container (truy cập từ máy local qua port 5432)
+    ports:
+      - "5432:5432"
+
+    # Mount volume để data không bị mất
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+    # Healthcheck để đảm bảo database sẵn sàng
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+    networks:
+      - commerce-network
+
+  # ==========================================
+  # SERVICE 2: REDIS CACHE
+  # ==========================================
+  redis:
+    image: redis:7-alpine
+    container_name: commerce-redis
+    restart: unless-stopped
+
+    # Command để chạy Redis với password (optional)
+    command: redis-server --appendonly yes
+
+    ports:
+      - "6379:6379"
+
+    volumes:
+      - redis-data:/data
+
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+    networks:
+      - commerce-network
+
+  # ==========================================
+  # SERVICE 3: RABBITMQ MESSAGE BROKER
+  # ==========================================
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: commerce-rabbitmq
+    restart: unless-stopped
+
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin123
+
+    ports:
+      - "5672:5672"    # AMQP protocol port
+      - "15672:15672"  # Management UI (truy cập qua http://localhost:15672)
+
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+    networks:
+      - commerce-network
+
+  # ==========================================
+  # SERVICE 4: SPRING BOOT APPLICATION
+  # ==========================================
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: commerce-app
+    restart: unless-stopped
+
+    # Chờ các services khác ready trước khi start
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+    # Biến môi trường để override application.yml
+    environment:
+      # Spring Profile
+      SPRING_PROFILES_ACTIVE: dev
+
+      # Database connection (trỏ đến container postgres thay vì localhost)
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/commercegatewaydb
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: 12345
+
+      # Redis connection
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+
+      # RabbitMQ connection
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: admin
+      SPRING_RABBITMQ_PASSWORD: admin123
+
+      # Mail config (giữ nguyên từ application.yml)
+      SPRING_MAIL_HOST: smtp.gmail.com
+      SPRING_MAIL_PORT: 587
+      SPRING_MAIL_USERNAME: qhuyddbmt123@gmail.com
+      SPRING_MAIL_PASSWORD: lbyjpyzajcrjkmjz
+
+      # JVM Options
+      JAVA_OPTS: -Xmx512m -Xms256m
+
+    ports:
+      - "8085:8085"
+
+    networks:
+      - commerce-network
+
+    # Healthcheck cho Spring Boot
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8085/api/v1/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+# ==========================================
+# HƯỚNG DẪN SỬ DỤNG:
+# ==========================================
+# 1. Khởi động tất cả services:
+#    docker-compose up -d
+#
+# 2. Xem logs:
+#    docker-compose logs -f
+#    docker-compose logs -f app (chỉ xem logs của app)
+#
+# 3. Dừng tất cả services:
+#    docker-compose down
+#
+# 4. Dừng và xóa volumes (XÓA DATA):
+#    docker-compose down -v
+#
+# 5. Rebuild image khi có thay đổi code:
+#    docker-compose up -d --build
+#
+# 6. Xem trạng thái:
+#    docker-compose ps
+#
+# 7. Truy cập services:
+#    - App: http://localhost:8085
+#    - Swagger UI: http://localhost:8085/swagger-ui.html
+#    - RabbitMQ Management: http://localhost:15672 (admin/admin123)
+#    - PostgreSQL: localhost:5432
+#    - Redis: localhost:6379
+
