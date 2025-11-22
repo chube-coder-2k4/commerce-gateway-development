@@ -1,6 +1,8 @@
 package dev.commerce.services.impl;
 
+import dev.commerce.entitys.Users;
 import dev.commerce.redis.OtpVerify;
+import dev.commerce.repositories.jpa.UserRepository;
 import dev.commerce.repositories.redis.OtpVerifyRepository;
 import dev.commerce.services.OtpVerifyService;
 import lombok.RequiredArgsConstructor;
@@ -10,15 +12,20 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class OtpVerifyServiceImpl implements OtpVerifyService {
     private final OtpVerifyRepository otpVerifyRepository;
+    private final UserRepository userRepository;
+
 
 
     @Override
     public boolean verifyOtp(String email, String otp) {
-        String storedOtp = otpVerifyRepository.findByEmail(email).getOtp();
+        String storedOtp = otpVerifyRepository.findById(email).get().getOtp();
         if(!storedOtp.equals(otp)) {
             throw new IllegalArgumentException("Invalid OTP");
         }
-        otpVerifyRepository.delete(otpVerifyRepository.findByEmail(email));
+        otpVerifyRepository.deleteById(email);
+        Users user = userRepository.findByEmail(email).orElseThrow(() -> new IllegalArgumentException("User not found"));
+        user.setVerify(true);
+        userRepository.save(user);
         return true;
     }
 
@@ -42,7 +49,7 @@ public class OtpVerifyServiceImpl implements OtpVerifyService {
         if(email == null || email.trim().isEmpty()) {
             throw new IllegalArgumentException("Email cannot be null or empty");
         }
-        OtpVerify otpVerify = otpVerifyRepository.findByEmail((email));
+        OtpVerify otpVerify = otpVerifyRepository.findById((email)).orElse(null);
         if(otpVerify == null) {
             throw new IllegalArgumentException("No OTP found for the provided email");
         }
@@ -54,10 +61,19 @@ public class OtpVerifyServiceImpl implements OtpVerifyService {
         if(email == null || email.trim().isEmpty()) {
             throw new IllegalArgumentException("Email cannot be null or empty");
         }
-        OtpVerify otpVerify = otpVerifyRepository.findByEmail(email);
-        if(otpVerify != null) {
-            otpVerifyRepository.delete(otpVerify);
-        }
+        otpVerifyRepository.findById(email).ifPresent(otpVerifyRepository::delete);
+    }
+
+    @Override
+    public String generateOtp() {
+        return String.valueOf((int)(Math.random() * 900000) + 100000);
+    }
+
+    @Override
+    public void resendOtp(String email) {
+        otpVerifyRepository.findById(email).ifPresent(otpVerifyRepository::delete);
+        String newOtp = generateOtp();
+        saveOtp(email, newOtp);
     }
 
 }

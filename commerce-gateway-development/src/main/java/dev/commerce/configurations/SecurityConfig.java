@@ -11,11 +11,10 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
@@ -24,6 +23,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
 @RequiredArgsConstructor
+@EnableWebSecurity
 public class SecurityConfig {
 
     private final Prefilter prefilter;
@@ -32,13 +32,17 @@ public class SecurityConfig {
     private final UserDetailsService userDetailsService;
     private final PasswordConfig passwordConfig;
 
+    // trong class này để thực hiện được @PreAuthorize("hasRole('ADMIN')") ở controller thì cần khai báo @EnableMethodSecurity ở main application
+    //
+
     // khai báo whitelist các endpoint ko cần xác thực ở đây nếu có
     private static final String[] AUTH_WHITELIST = {
             "/auth/**",
             "/v3/api-docs/**",
             "/swagger-ui/**",
-            "/swagger-ui.html",
-            "/users/register"
+            "/swagger-ui.html"
+//            ,
+//            "/users/register"
     };
 
     @Bean

@@ -8,6 +8,7 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
@@ -30,20 +31,13 @@ public class JwtServiceImpl implements JwtService {
     @Value("${jwt.expiryDay}")
     private long expirationDays;
 
+
     @Override
     public String generateAccessToken(UserDetails userDetails) {
-        return generateAccessToken(new HashMap<>(), userDetails);
+        Map<String,Object> claims = buildClaims(userDetails);
+        return buildToken(claims, userDetails, TokenType.ACCESS, expirationTime);
     }
 
-    private String generateAccessToken(Map<String,Object> claims, UserDetails userDetails) {
-        return Jwts.builder()
-                .setClaims(claims)
-                .setSubject(userDetails.getUsername())
-                .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + expirationTime))
-                .signWith(getJwtSecretKey(TokenType.ACCESS), SignatureAlgorithm.HS256)
-                .compact();
-    }
 
     private Key getJwtSecretKey(TokenType tokenType) {
         switch (tokenType) {
@@ -61,17 +55,8 @@ public class JwtServiceImpl implements JwtService {
 
     @Override
     public String generateRefreshToken(UserDetails userDetails) {
-        return generateRefreshToken(new HashMap<>(), userDetails);
-    }
-
-    private String generateRefreshToken(Map<String,Object> claims, UserDetails userDetails) {
-        return Jwts.builder()
-                .setClaims(claims)
-                .setSubject(userDetails.getUsername())
-                .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + expirationDays * 24 * 60 * 60 * 1000))
-                .signWith(getJwtSecretKey(TokenType.REFRESH), SignatureAlgorithm.HS256)
-                .compact();
+        Map<String,Object> claims = buildClaims(userDetails);
+        return buildToken(claims, userDetails, TokenType.REFRESH, expirationDays * 24 * 60 * 60 * 1000);
     }
 
     @Override
@@ -90,17 +75,8 @@ public class JwtServiceImpl implements JwtService {
 
     @Override
     public String generateResetPasswordToken(UserDetails userDetails) {
-        return generateResetPasswordToken(new HashMap<>(), userDetails);
-    }
-
-    private String generateResetPasswordToken(Map<String,Object> claims, UserDetails userDetails) {
-        return Jwts.builder()
-                .setClaims(claims)
-                .setSubject(userDetails.getUsername())
-                .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + expirationTime))
-                .signWith(getJwtSecretKey(TokenType.RESET_PASSWORD), SignatureAlgorithm.HS256)
-                .compact();
+        Map<String,Object> claims = buildClaims(userDetails);
+        return buildToken(claims, userDetails, TokenType.RESET_PASSWORD, expirationTime);
     }
 
     private Claims extractAllClaims(String token, TokenType tokenType) {
@@ -115,4 +91,25 @@ public class JwtServiceImpl implements JwtService {
         final Claims claims = extractAllClaims(token, tokenType);
         return claimsResolver.apply(claims);
     }
+
+    private Map<String, Object> buildClaims(UserDetails userDetails) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("roles", userDetails.getAuthorities()
+                .stream()
+                .map(GrantedAuthority::getAuthority)
+                .toList());
+        return claims;
+    }
+
+    private String buildToken(Map<String,Object> claims, UserDetails userDetails, TokenType type, long expirationMillis) {
+        return Jwts.builder()
+                .setClaims(claims)
+                .setSubject(userDetails.getUsername())
+                .setIssuedAt(new Date(System.currentTimeMillis()))
+                .setExpiration(new Date(System.currentTimeMillis() + expirationMillis))
+                .signWith(getJwtSecretKey(type), SignatureAlgorithm.HS256)
+                .compact();
+    }
+
+
 }

@@ -3,6 +3,7 @@ package dev.commerce.controllers;
 import dev.commerce.dtos.request.*;
 import dev.commerce.dtos.response.LoginResponse;
 import dev.commerce.services.OtpVerifyService;
+import dev.commerce.services.UserService;
 import dev.commerce.services.security.AuthenticationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -33,6 +34,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthenticationController {
     private final AuthenticationService authenticationService;
     private final OtpVerifyService otpVerifyService;
+    private final UserService userService;
 
     @Operation(summary = "User login", description = "Authenticate user and return access token and refresh token")
     @ApiResponses(value = {
@@ -118,6 +120,20 @@ public class AuthenticationController {
     public ResponseEntity<String> verifyOtp(@Valid @RequestBody VerifyRequest request) {
         otpVerifyService.verifyOtp(request.getEmail(), request.getOtp());
         return ResponseEntity.ok("OTP verified successfully");
+    }
+
+    // resend OTP
+    @Operation(summary = "Resend OTP for email", description = "Resend the OTP to user's email for account activation")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "OTP resent successfully"),
+            @ApiResponse(responseCode = "404", description = "User not found")
+    })
+    @PostMapping("/resend-otp")
+    public ResponseEntity<String> resendOtp(@Valid @RequestBody ResendOtpRequest request) {
+        otpVerifyService.resendOtp(request.getEmail());
+        String otp = otpVerifyService.getOtp(request.getEmail());
+        return ResponseEntity.status(HttpStatus.OK)
+                .body("OTP resent successfully. New OTP: " + otp);
     }
 
 }
