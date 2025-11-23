@@ -44,6 +44,7 @@ public class Prefilter extends OncePerRequestFilter {
         log.info("Token: {} ", token);
         final String username = jwtService.extractUsername(token, TokenType.ACCESS);
         log.info("Username: {}", username);
+        log.info("Role from token: {}", jwtService.extractRole(token, TokenType.ACCESS));
         if (StringUtils.isNotEmpty(username) && SecurityContextHolder.getContext().getAuthentication() == null) {
             var userDetails = userDetailService.loadUserByUsername(username);
             if (jwtService.isTokenValid(token, userDetails, TokenType.ACCESS)) {

@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import java.security.Key;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -34,16 +35,22 @@ public class JwtServiceImpl implements JwtService {
 
     @Override
     public String generateAccessToken(UserDetails userDetails) {
-        Map<String,Object> claims = buildClaims(userDetails);
+        Map<String, Object> claims = buildClaims(userDetails);
         return buildToken(claims, userDetails, TokenType.ACCESS, expirationTime);
     }
 
 
     private Key getJwtSecretKey(TokenType tokenType) {
         switch (tokenType) {
-            case ACCESS -> {return Keys.hmacShaKeyFor(Decoders.BASE64.decode(secretKey));}
-            case REFRESH -> {return Keys.hmacShaKeyFor(Decoders.BASE64.decode(refreshKey));}
-            case RESET_PASSWORD -> {return Keys.hmacShaKeyFor(Decoders.BASE64.decode(resetPasswordKey));}
+            case ACCESS -> {
+                return Keys.hmacShaKeyFor(Decoders.BASE64.decode(secretKey));
+            }
+            case REFRESH -> {
+                return Keys.hmacShaKeyFor(Decoders.BASE64.decode(refreshKey));
+            }
+            case RESET_PASSWORD -> {
+                return Keys.hmacShaKeyFor(Decoders.BASE64.decode(resetPasswordKey));
+            }
             default -> throw new IllegalArgumentException("Invalid token type");
         }
     }
@@ -55,7 +62,7 @@ public class JwtServiceImpl implements JwtService {
 
     @Override
     public String generateRefreshToken(UserDetails userDetails) {
-        Map<String,Object> claims = buildClaims(userDetails);
+        Map<String, Object> claims = buildClaims(userDetails);
         return buildToken(claims, userDetails, TokenType.REFRESH, expirationDays * 24 * 60 * 60 * 1000);
     }
 
@@ -75,7 +82,7 @@ public class JwtServiceImpl implements JwtService {
 
     @Override
     public String generateResetPasswordToken(UserDetails userDetails) {
-        Map<String,Object> claims = buildClaims(userDetails);
+        Map<String, Object> claims = buildClaims(userDetails);
         return buildToken(claims, userDetails, TokenType.RESET_PASSWORD, expirationTime);
     }
 
@@ -101,7 +108,7 @@ public class JwtServiceImpl implements JwtService {
         return claims;
     }
 
-    private String buildToken(Map<String,Object> claims, UserDetails userDetails, TokenType type, long expirationMillis) {
+    private String buildToken(Map<String, Object> claims, UserDetails userDetails, TokenType type, long expirationMillis) {
         return Jwts.builder()
                 .setClaims(claims)
                 .setSubject(userDetails.getUsername())
@@ -109,6 +116,19 @@ public class JwtServiceImpl implements JwtService {
                 .setExpiration(new Date(System.currentTimeMillis() + expirationMillis))
                 .signWith(getJwtSecretKey(type), SignatureAlgorithm.HS256)
                 .compact();
+    }
+
+    @Override
+    public List<String> extractRole(String token, TokenType tokenType) {
+        Claims claims = extractAllClaims(token, tokenType);
+        Object rolesObject = claims.get("roles");
+        if (rolesObject instanceof List<?> rolesList && !rolesList.isEmpty()) {
+            return rolesList.stream()
+                    .map(Object::toString)
+                    .toList();
+        } else {
+            return List.of();
+        }
     }
 
 
