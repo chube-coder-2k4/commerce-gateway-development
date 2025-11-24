@@ -18,6 +18,7 @@ public class Category extends BaseEntity{
     private UUID id;
     private String name;
     private String slug;
+    private boolean isActive = true;
 
     @PrePersist
     public void prePersist() {
