@@ -14,9 +14,9 @@ import java.util.UUID;
 public interface OrderService {
     OrderDetailResponse createOrder(OrderRequest orderRequest);
 
-    List<OrderResponse> getUserOrders();
+    List<OrderDetailResponse> getUserOrders();
 
-    List<OrderDetailResponse> getAllOrders();
+    List<OrderResponse> getAllOrders();
 
     OrderResponse updateStatus(UUID orderId, OrderStatus status);
 

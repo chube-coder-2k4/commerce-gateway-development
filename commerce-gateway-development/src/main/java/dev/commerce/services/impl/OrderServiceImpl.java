@@ -63,18 +63,18 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    public List<OrderResponse> getUserOrders() {
+    public List<OrderDetailResponse> getUserOrders() {
         Users user = utils.getCurrentUser();
-        return orderRepository.findByUsers(user).stream().map(orderMapper::toOrderResponse).toList();
-    }
-
-    @Override
-    public List<OrderDetailResponse> getAllOrders() {
-        List<Order> orders = orderRepository.findAll();
-        return orders.stream().map(order -> {
+        return orderRepository.findByUsers(user).stream().map(order -> {
             List<OrderItem> orderItems = orderItemRepository.findByOrder(order);
             return orderMapper.toOrderDetailResponse(order, orderItems);
         }).toList();
+    }
+
+    @Override
+    public List<OrderResponse> getAllOrders() {
+        List<Order> orders = orderRepository.findAll();
+        return orders.stream().map(orderMapper::toOrderResponse).toList();
     }
 
     @Override
