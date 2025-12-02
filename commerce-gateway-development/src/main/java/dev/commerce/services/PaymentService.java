@@ -10,7 +10,10 @@ import java.util.UUID;
 public interface PaymentService {
 
     PaymentUrlResponse createPaymentUrl(UUID orderId);
-    PaymentResponse handlePaymentCallback(Map<String, String> callbackParams);
-    List<PaymentResponse> getUserPayments(UUID userId);
+
+    PaymentResponse handlePaymentCallback(Map<String, String> vnpParams);
+
+    List<PaymentResponse> getMyPayments();
+
     PaymentResponse getPaymentDetails(UUID paymentId);
 }

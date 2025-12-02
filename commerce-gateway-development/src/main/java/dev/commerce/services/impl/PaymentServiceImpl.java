@@ -22,18 +22,19 @@ public class PaymentServiceImpl implements PaymentService {
     private final AuthenticationUtils utils;
     private final VNPayConfig vnPayConfig;
 
+
     @Override
     public PaymentUrlResponse createPaymentUrl(UUID orderId) {
         return null;
     }
 
     @Override
-    public PaymentResponse handlePaymentCallback(Map<String, String> callbackParams) {
+    public PaymentResponse handlePaymentCallback(Map<String, String> vnpParams) {
         return null;
     }
 
     @Override
-    public List<PaymentResponse> getUserPayments(UUID userId) {
+    public List<PaymentResponse> getMyPayments() {
         return List.of();
     }
 

@@ -1,5 +1,6 @@
 package dev.commerce.entitys;
 
+import dev.commerce.dtos.common.PaymentMethod;
 import dev.commerce.dtos.common.PaymentStatus;
 import jakarta.persistence.*;
 import lombok.*;
@@ -19,7 +20,7 @@ public class Payment extends BaseEntity{
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id")
     private Order order;
-    private String provider;
+    private PaymentMethod provider;
     private double amount;
     private String transactionId;
     @Enumerated(EnumType.STRING)
